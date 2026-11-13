@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Решись Авиа — Динамическое ценообразование</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 740px; margin: 36px auto; padding: 0 16px; color: #e6edf3; background: #0d1117; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 26px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .auth-box { max-width: 390px; margin: 48px auto; }
+    h2 { font-weight: 600; letter-spacing: -0.3px; color: #f0f6fc; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 18px; background: #0d1117; padding: 4px; border-radius: 8px; border: 1px solid #30363d; }
+    .tab { flex: 1; padding: 8px; border: none; background: transparent; color: #8b949e; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+    .tab.active { background: #21262d; color: #f0f6fc; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 14px; margin-bottom: 20px; }
+    .logout-btn { width: auto; border: 1px solid #30363d; padding: 6px 14px; background: #21262d; color: #f85149; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .logout-btn:hover { background: #30363d; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 13px; color: #8b949e; }
+    input, select { width: 100%; padding: 10px 12px; font-size: 14px; background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; outline: none; color-scheme: dark; }
+    input:focus, select:focus { border-color: #58a6ff; }
+    button.primary { width: 100%; padding: 11px; font-size: 14px; background: #238636; color: #fff; border: 1px solid rgba(240,246,252,0.1); border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    button.primary:hover { background: #2ea043; }
+    #result { margin-top: 22px; padding: 18px; background: #0d1117; border: 1px solid #30363d; border-radius: 10px; display: none; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat-box { background: #161b22; padding: 12px; border-radius: 8px; border: 1px solid #30363d; text-align: center; }
+    .stat-title { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+    .stat-val { font-size: 22px; font-weight: 600; color: #58a6ff; }
+    .legend { display: flex; gap: 18px; justify-content: center; font-size: 12px; color: #8b949e; margin-top: 12px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+    .error { color: #f85149; margin-top: 12px; font-size: 13px; }
+    canvas { width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 8px; display: block; }
+  </style>
+</head>
+<body>
+  <div id="auth-section" class="card auth-box">
+    <h2 style="text-align:center;margin-top:0;margin-bottom:18px">Решись Авиа</h2>
+    <div class="tabs">
+      <button type="button" id="tab-login" class="tab active" onclick="switchMode(0)">Вход</button>
+      <button type="button" id="tab-reg" class="tab" onclick="switchMode(1)">Регистрация</button>
+    </div>
+    <div class="field"><label>Логин</label><input id="auth-user" placeholder="От 3 символов"></div>
+    <div class="field"><label>Пароль</label><input id="auth-pass" type="password" placeholder="От 4 символов"></div>
+    <button type="button" class="primary" id="auth-btn" onclick="submitAuth()">Войти</button>
+    <div id="auth-error" class="error"></div>
+  </div>
+  <div id="app-section" class="card" style="display:none">
+    <div class="topbar">
+      <h2 style="margin:0;font-size:18px">Прогноз спроса «Решись Авиа»</h2>
+      <div><span id="user-badge" style="margin-right:12px;font-size:13px;color:#8b949e"></span><button type="button" class="logout-btn" onclick="logout()">Выйти</button></div>
+    </div>
+    <div class="grid">
+      <div class="field"><label>Откуда</label><select id="origin"><option value="MOW">MOW (Москва)</option><option value="AER">AER (Сочи)</option><option value="KGD">KGD (Калининград)</option><option value="LED">LED (Санкт-Петербург)</option><option value="MRV">MRV (Минеральные Воды)</option><option value="OVB">OVB (Новосибирск)</option></select></div>
+      <div class="field"><label>Куда</label><select id="destination"><option value="AER">AER (Сочи)</option><option value="KGD">KGD (Калининград)</option><option value="LED">LED (Санкт-Петербург)</option><option value="MRV">MRV (Минеральные Воды)</option><option value="OVB">OVB (Новосибирск)</option><option value="MOW">MOW (Москва)</option></select></div>
+      <div class="field"><label>Дата вылета</label><input id="date" type="date" value="2026-06-01" min="2026-06-01" max="2026-07-01"></div>
+      <div class="field"><label>Цена билета (₽)</label><input id="price" type="number" value="8000" step="100"></div>
+    </div>
+    <button type="button" class="primary" onclick="calc()">Рассчитать спрос</button>
+    <div id="error" class="error"></div>
+    <div id="result">
+      <div class="stats">
+        <div class="stat-box"><div class="stat-title">Мест в самолёте</div><div class="stat-val" id="st-seats">-</div></div>
+        <div class="stat-box"><div class="stat-title">Желают (0.5)</div><div class="stat-val" id="st-desired">-</div></div>
+        <div class="stat-box"><div class="stat-title">Прогноз продаж</div><div class="stat-val" id="st-sold" style="color:#3fb950">-</div></div>
+      </div>
+      <canvas id="demandChart" width="660" height="280"></canvas>
+      <div class="legend"><span><i class="dot" style="background:#1f6feb"></i>Спрос по квантилям</span><span><i class="dot" style="background:#58a6ff"></i>Медиана (0.5)</span><span><i class="dot" style="background:#f85149;height:2px"></i>Мест (seats)</span></div>
+    </div>
+  </div>
+  <script>
+    let isReg = 0;
+    const $ = id => document.getElementById(id);
+    function switchMode(m) { isReg = m; $('auth-error').textContent = ''; $('tab-login').className = 'tab' + (m === 0 ? ' active' : ''); $('tab-reg').className = 'tab' + (m === 1 ? ' active' : ''); $('auth-btn').textContent = m === 0 ? 'Войти' : 'Зарегистрироваться'; }
+    function renderState() { const t = localStorage.getItem('avia_token'), u = localStorage.getItem('avia_user'); $('auth-section').style.display = t && u ? 'none' : 'block'; $('app-section').style.display = t && u ? 'block' : 'none'; if (u) $('user-badge').textContent = u; }
+    async function submitAuth() { $('auth-error').textContent = ''; try { const r = await fetch(isReg === 0 ? '/api/login' : '/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: $('auth-user').value, password: $('auth-pass').value }) }); const d = await r.json(); if (!r.ok) { $('auth-error').textContent = d.detail || 'Ошибка'; return; } localStorage.setItem('avia_token', d.token); localStorage.setItem('avia_user', d.username); renderState(); } catch (e) { $('auth-error').textContent = 'Ошибка соединения'; } }
+    async function logout() { const t = localStorage.getItem('avia_token'); if (t) await fetch('/api/logout', { method: 'POST', headers: { 'Authorization': 'Bearer ' + t } }); localStorage.removeItem('avia_token'); localStorage.removeItem('avia_user'); $('result').style.display = 'none'; renderState(); }
+    function drawChart(qs, seats) { const c = $('demandChart'), ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height); const pL = 45, pR = 20, pT = 28, pB = 34, w = c.width - pL - pR, h = c.height - pT - pB, maxV = Math.max(seats, ...qs.map(x => x.demand), 10) * 1.14; ctx.strokeStyle = '#30363d'; ctx.beginPath(); ctx.moveTo(pL, pT); ctx.lineTo(pL, pT + h); ctx.lineTo(pL + w, pT + h); ctx.stroke(); const bW = w / qs.length * 0.56, st = w / qs.length; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; qs.forEach((it, i) => { const bh = (Math.max(0, it.demand) / maxV) * h, x = pL + i * st + (st - bW) / 2, y = pT + h - bh; ctx.fillStyle = it.quantile === '0.5' ? '#58a6ff' : '#1f6feb'; ctx.fillRect(x, y, bW, bh); ctx.fillStyle = '#c9d1d9'; ctx.fillText(Math.round(it.demand), x + bW / 2, y - 7); ctx.fillStyle = '#8b949e'; ctx.fillText(it.quantile, x + bW / 2, pT + h + 18); }); const sY = pT + h - (seats / maxV) * h; ctx.strokeStyle = '#f85149'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(pL, sY); ctx.lineTo(pL + w, sY); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#f85149'; ctx.textAlign = 'left'; ctx.fillText('Мест: ' + seats, pL + 6, sY - 7); }
+    async function calc() { $('error').textContent = ''; try { const r = await fetch('/api/predict', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('avia_token') }, body: JSON.stringify({ origin: $('origin').value, destination: $('destination').value, date: $('date').value, price: parseFloat($('price').value) }) }); if (r.status === 401) { logout(); return; } const d = await r.json(); if (!r.ok) { $('result').style.display = 'none'; $('error').textContent = d.detail || 'Ошибка'; return; } $('st-seats').textContent = d.seats; $('st-desired').textContent = d.desired; $('st-sold').textContent = d.sold; $('result').style.display = 'block'; drawChart(d.quantiles, d.seats); } catch (e) { $('error').textContent = 'Ошибка: ' + e.message; } }
+    renderState();
+  </script>
+</body>
+</html>
